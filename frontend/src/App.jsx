@@ -1,117 +1,192 @@
-
-import './App.css'
-import TableItems from '../src/JSON/TableItems.json';
+import './App.css';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import React, { useState, useEffect } from 'react'
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
-import { ForTableJSON } from '../src/JSON/ForTableJSON.jsx';
-import { Items } from './JavaScript/Items';        
-import  {table} from "./Pages/table.jsx";
+import { ForTableJSON } from './JSON/ForTableJSON.jsx';
+import { clearSession, getStoredUser, getToken } from './lib/auth.js';
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
+
+const navItems = [
+  { label: 'Dashboard', icon: 'pi pi-home', path: '/dashboard' },
+  { label: 'Borrow', icon: 'pi pi-book', path: '/Borrow' },
+  { label: 'Return', icon: 'pi pi-replay', path: '/Return' },
+  { label: 'Account', icon: 'pi pi-user', path: '/Account' },
+];
 
 function App() {
-
+  const navigate = useNavigate();
+  const user = getStoredUser();
   const [products, setProducts] = useState([]);
+  const [backendHealth, setBackendHealth] = useState({
+    loading: true,
+    ok: false,
+    text: 'Checking backend...',
+  });
 
-  useEffect(() => {
-    ForTableJSON.getProductsMini().then(data => setProducts(data));
+  const loadProducts = useCallback(() => {
+    ForTableJSON.getProductsMini().then((data) => setProducts(data || []));
   }, []);
 
-  const navigate = useNavigate();
-  const handleHomeClick = () => navigate('/');
-  const handleBorrowClick = () => navigate('/Borrow');
-  const handleReturnClick = () => navigate('/Return');
-  const handleAccountClick = () => navigate('/Account');
+  const checkBackendHealth = useCallback(async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/health/`);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const data = await response.json();
+      const isOk = data?.status === 'ok';
+
+      setBackendHealth({
+        loading: false,
+        ok: isOk,
+        text: isOk
+          ? `Backend connected (${data.service})`
+          : 'Backend responded with unexpected payload',
+      });
+    } catch (error) {
+      setBackendHealth({
+        loading: false,
+        ok: false,
+        text: `Backend unavailable (${error.message})`,
+      });
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!getToken()) {
+      navigate('/login');
+      return;
+    }
+    loadProducts();
+    checkBackendHealth();
+  }, [loadProducts, checkBackendHealth, navigate]);
+
+  const metrics = useMemo(() => {
+    const borrowed = products.filter(
+      (item) => String(item.Status || '').toLowerCase() === 'borrowed'
+    ).length;
+    const returned = products.filter(
+      (item) => String(item.Status || '').toLowerCase() === 'returned'
+    ).length;
+
+    return {
+      total: products.length,
+      borrowed,
+      returned,
+    };
+  }, [products]);
+
+  const statusBodyTemplate = (rowData) => {
+    const status = rowData?.Status || 'Unknown';
+    const tone = String(status).toLowerCase() === 'borrowed' ? 'is-borrowed' : 'is-returned';
+    return <span className={`status-badge ${tone}`}>{status}</span>;
+  };
+
+  const handleLogout = () => {
+    clearSession();
+    navigate('/login');
+  };
 
   return (
-    <>
+    <div className="dashboard-shell">
+      <div className="bg-orb bg-orb-1" />
+      <div className="bg-orb bg-orb-2" />
 
-<link rel="stylesheet" href="https://fonts.googleapis.com/cs
-s2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48
-,100..700,0..1,-50..200" />
-
-    <div className="WholeContent">
-
-    <aside>
-          <div className="aside">
-            <div className="sidebar">
-              <div className="pfp" >
-                <span id='icon' onClick={handleAccountClick} class="icon material-symbols-outlined">
-              edit
-              </span> 
-              <div className="username">
-              <h1></h1>    
-              </div>
-              </div>
-             <div className="sidebuttons">
-            <a onClick={handleHomeClick}>
-              <span className="material-symbols-outlined" >
-                home
-              </span>
-              <h2>Dashboard</h2>
-            </a>
-            <a onClick={handleBorrowClick}>
-              <span className="material-symbols-outlined">
-                book
-              </span>
-              <h2>Borrow</h2>
-            </a>
-            <a onClick={handleReturnClick} >
-              <span className="material-symbols-outlined" >
-                keyboard_return
-              </span>
-              <h2>Return</h2>
-            </a>
-            <a href="#">
-              <span className="material-symbols-outlined">logout</span>
-              <h2>Logout</h2>
-            </a>
-            </div>
+      <aside className="sidebar-panel">
+        <div>
+          <div className="brand-block">
+            <div className="brand-mark">GG</div>
+            <div>
+              <h1>GearGuard</h1>
+              <p>Equipment Tracker</p>
             </div>
           </div>
-        </aside>
-        
 
-       
-          <div className="content">
-
-            <div className="upper">
-              
-               <div className="logo" />
-               
-                <h1>Welcome to GearGuard!</h1> 
-              </div>
-            
-            <div className="lower">
-                 <div className="table" >
-                 <div className="card">
-                   <DataTable value={products} scrollable scrollHeight="400px" tableStyle={{ minWidth: '50rem' }}>
-                      <Column field="ItemId" header="ID"></Column>
-                      <Column field="ItemName" header="Item"></Column>
-                      <Column field="Status" header="Status"></Column>
-                      <Column field="DateBorrowed" header="Date Borrowed"></Column>
-                      <Column field="ReturnDate" header="Return Date"></Column>
-                   </DataTable>
+          <nav className="nav-list" aria-label="Main navigation">
+            {navItems.map((item) => (
+              <button
+                key={item.path}
+                type="button"
+                className={`nav-btn ${item.path === '/dashboard' ? 'is-active' : ''}`}
+                onClick={() => navigate(item.path)}
+              >
+                <i className={item.icon} />
+                <span>{item.label}</span>
+              </button>
+            ))}
+          </nav>
         </div>
-                  
-                 </div>
-            </div>
-            
+
+        <button type="button" className="logout-btn" onClick={handleLogout}>
+          <i className="pi pi-sign-out" />
+          <span>Logout</span>
+        </button>
+      </aside>
+
+      <main className="main-panel">
+        <header className="top-row">
+          <div>
+            <h2>Dashboard</h2>
+            <p>Manage lab equipment and monitor item status in real time.</p>
+            <p style={{ marginTop: 8, fontWeight: 700 }}>
+              {user ? `${user.username} (${user.role})` : 'Guest mode'}
+            </p>
           </div>
-      
+          <div className={`health-pill ${backendHealth.ok ? 'ok' : 'error'}`}>
+            <span className="dot" />
+            <span>{backendHealth.loading ? 'Checking backend...' : backendHealth.text}</span>
+          </div>
+        </header>
 
-  
-    <footer>
-      <div className="footer-content">
-      <h3>GearGuard</h3>
-            <p>Praise be Jesus and Mary! Now and Forever!</p>
-            
-        </div>
-    </footer>  </div>
+        <section className="kpi-row">
+          <article className="kpi-card">
+            <p>Total items</p>
+            <h3>{metrics.total}</h3>
+          </article>
+          <article className="kpi-card">
+            <p>Borrowed</p>
+            <h3>{metrics.borrowed}</h3>
+          </article>
+          <article className="kpi-card">
+            <p>Returned</p>
+            <h3>{metrics.returned}</h3>
+          </article>
+        </section>
 
-    </>
-  )
+        <section className="table-panel">
+          <div className="table-header">
+            <div>
+              <h3>Recent Activity</h3>
+              <p>Latest equipment movement records</p>
+            </div>
+            <button type="button" className="refresh-btn" onClick={loadProducts}>
+              <i className="pi pi-refresh" />
+              Refresh
+            </button>
+          </div>
+
+          <DataTable
+            value={products}
+            scrollable
+            scrollHeight="380px"
+            stripedRows
+            showGridlines
+            className="activity-table"
+            emptyMessage="No records found"
+          >
+            <Column field="ItemId" header="ID" style={{ width: '7rem' }} />
+            <Column field="ItemName" header="Item" />
+            <Column field="Status" header="Status" body={statusBodyTemplate} style={{ width: '10rem' }} />
+            <Column field="DateBorrowed" header="Borrowed" style={{ width: '13rem' }} />
+            <Column field="ReturnDate" header="Return" style={{ width: '13rem' }} />
+          </DataTable>
+        </section>
+      </main>
+    </div>
+  );
 }
 
-export default App
+export default App;

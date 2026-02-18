@@ -1,12 +1,1 @@
-.scan{
-  
-    margin: auto auto;
-}
-
-#logoscan {
-    font-size: 100px;
-    color: #e96d83;
-}
-.scan h4{
-    font-size: 100px;
-}
+/* Scan page uses shared styles from CSS/Theme.css */

@@ -7,6 +7,9 @@ import Return from './Pages/Return/Return.jsx'
 import Borrow from './Pages/Borrow/Borrow.tsx'
 import Account from './Pages/Account/Account.jsx'
 import Scan from './Pages/Scan/Scan.jsx'
+import Login from './Pages/Auth/Login.jsx'
+import Register from './Pages/Auth/Register.jsx'
+import Approvals from './Pages/Admin/Approvals.jsx'
 
 import {createBrowserRouter,RouterProvider} from "react-router-dom";
 
@@ -14,6 +17,7 @@ import './CSS/Scan.css'
 import './CSS/Return.css'
 import './CSS/Account.css'
 import './CSS/Borrow.css'
+import './CSS/Theme.css'
 import './index.css'
 import 'primereact/resources/themes/saga-blue/theme.css';
 import 'primereact/resources/primereact.min.css';
@@ -22,6 +26,10 @@ import 'primeicons/primeicons.css';
 const router = createBrowserRouter([
   {
     path: "/",
+    element: <Login />,
+  },
+  {
+    path: "/dashboard",
     element: <App />,
   },
   {
@@ -39,6 +47,18 @@ const router = createBrowserRouter([
   {
     path: "/Scan",
     element: <Scan />
+  },
+  {
+    path: "/login",
+    element: <Login />
+  },
+  {
+    path: "/register",
+    element: <Register />
+  },
+  {
+    path: "/admin/approvals",
+    element: <Approvals />
   }
 ]);
 

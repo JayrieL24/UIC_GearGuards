@@ -2,6 +2,18 @@ import  JSONData  from './TableItems.json';
 
 let dashData = JSONData;
 
+const asArray = (data) => {
+    if (Array.isArray(data)) {
+        return data;
+    }
+
+    if (data && Array.isArray(data.__collections__)) {
+        return data.__collections__;
+    }
+
+    return [];
+};
+
 
 export const ForTableJSON = {
 
@@ -9,7 +21,7 @@ export const ForTableJSON = {
 
     getProductsData() {
 
-        return dashData;
+        return asArray(dashData);
     },
 
     getProductsMini() {

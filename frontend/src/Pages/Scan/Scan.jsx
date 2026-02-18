@@ -1,87 +1,70 @@
-import { useNavigate } from 'react-router-dom';
-import React, { useState } from 'react';    
+import { useLocation, useNavigate } from "react-router-dom";
+import { clearSession } from "../../lib/auth";
 
+const navItems = [
+  { label: "Dashboard", icon: "pi pi-home", path: "/dashboard" },
+  { label: "Borrow", icon: "pi pi-book", path: "/Borrow" },
+  { label: "Return", icon: "pi pi-replay", path: "/Return" },
+  { label: "Account", icon: "pi pi-user", path: "/Account" },
+];
 
 function Scan() {
-
-  const [value1, setValue1] = useState(0);
-    
-  const [selectedItem, setSelectedItem] = useState(null);
-  const items = Array.from({ length: 100000 }).map((_, i) => ({ label: `Item #${i}`, value: i }));
-
   const navigate = useNavigate();
-  const handleHomeClick = () => navigate('/');
-  const handleBorrowClick = () => navigate('/Borrow');
-  const handleReturnClick = () => navigate('/Return');
-  const handleAccountClick = () => navigate('/Account');
+  const location = useLocation();
+  const handleLogout = () => {
+    clearSession();
+    navigate("/login");
+  };
 
   return (
-    <>
-
-<link rel="stylesheet" href="https://fonts.googleapis.com/cs
-s2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48
-,100..700,0..1,-50..200" />
-
-    <div className="WholeContent">
-
-    <aside>
-          <div className="aside">
-            <div className="sidebar">
-              <div className="pfp" onClick={handleAccountClick}>
-                <span id='icon' class="icon material-symbols-outlined">
-              edit
-              </span> 
-              <div className="username">
-              <h1>User!</h1>    
-              </div>
-              </div>
-             
-              <div className="sidebuttons">
-            <a onClick={handleHomeClick}>
-              <span className="material-symbols-outlined" >
-                home
-              </span>
-              <h2>Dashboard</h2>
-            </a>
-            <a onClick={handleBorrowClick}>
-              <span className="material-symbols-outlined">
-                book
-              </span>
-              <h2>Borrow</h2>
-            </a>
-            <a onClick={handleReturnClick} >
-              <span className="material-symbols-outlined" >
-                keyboard_return
-              </span>
-              <h2>Return</h2>
-            </a>
-            <a href="#">
-              <span className="material-symbols-outlined">logout</span>
-              <h2>Logout</h2>
-            </a>
-            </div>
+    <div className="page-shell">
+      <aside className="page-sidebar">
+        <div>
+          <div className="page-brand">
+            <div className="page-brand-mark">GG</div>
+            <div>
+              <h1>GearGuard</h1>
+              <p>Equipment Tracker</p>
             </div>
           </div>
-        </aside>
-        
-        <div className="scan">
-            <span id='logoscan' class="material-symbols-outlined">
-                gpp_maybe
-            </span>
-            <h4>Hello Please Scan First</h4>
-        </div>
-         
-          <footer>
-      <div className="footer-content">
-      <h3>GearGuard</h3>
-            <p>Praise be Jesus and Mary! Now and Forever!</p>
-            
-        </div>
-    </footer>
 
+          <nav className="page-nav" aria-label="Main navigation">
+            {navItems.map((item) => (
+              <button
+                key={item.path}
+                type="button"
+                className={`page-nav-btn ${location.pathname === item.path ? "is-active" : ""}`}
+                onClick={() => navigate(item.path)}
+              >
+                <i className={item.icon} />
+                <span>{item.label}</span>
+              </button>
+            ))}
+          </nav>
+        </div>
+
+        <button type="button" className="page-logout-btn" onClick={handleLogout}>
+          <i className="pi pi-sign-out" />
+          <span>Logout</span>
+        </button>
+      </aside>
+
+      <main className="page-main">
+        <header className="page-header">
+          <h2>Scan Station</h2>
+          <p>Use scanner mode to identify equipment quickly.</p>
+        </header>
+
+        <section className="page-content-card scan-card">
+          <div className="scan-icon">
+            <i className="pi pi-qrcode" />
+          </div>
+          <h3>Ready to Scan</h3>
+          <p>Point your barcode or QR scanner at an item to begin.</p>
+        </section>
+      </main>
     </div>
-    </>
-  )
+  );
 }
 
-export default Scan
+export default Scan;

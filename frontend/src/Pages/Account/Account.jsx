@@ -1,121 +1,108 @@
+import { useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { Password } from "primereact/password";
+import { InputText } from "primereact/inputtext";
+import { Button } from "primereact/button";
+import { clearSession } from "../../lib/auth";
 
-import { useNavigate } from 'react-router-dom';
-
-import { Password } from 'primereact/password';
-
-import { InputText } from 'primereact/inputtext';
-
-import React, { useState } from "react";
-
-
-import { Button } from 'primereact/button';
-                
+const navItems = [
+  { label: "Dashboard", icon: "pi pi-home", path: "/dashboard" },
+  { label: "Borrow", icon: "pi pi-book", path: "/Borrow" },
+  { label: "Return", icon: "pi pi-replay", path: "/Return" },
+  { label: "Account", icon: "pi pi-user", path: "/Account" },
+];
 
 function Account() {
-    const [name, setUsername] = useState('');
-    const [password, setPassword] = useState('');
   const navigate = useNavigate();
-  const handleHomeClick = () => navigate('/');
-  const handleBorrowClick = () => navigate('/Borrow');
-  const handleReturnClick = () => navigate('/Return');
-  const handleAccountClick = () => navigate('/Account');
+  const location = useLocation();
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+
+  const handleSave = () => {
+    console.log("Updating account info", { username, hasPassword: Boolean(password) });
+  };
+
+  const handleLogout = () => {
+    clearSession();
+    navigate("/login");
+  };
 
   return (
-    <>
-
-<link rel="stylesheet" href="https://fonts.googleapis.com/cs
-s2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48
-,100..700,0..1,-50..200" />
-
-<div className="WholeContent">
-
-<aside>
-      <div className="aside">
-        <div className="sidebar">
-          <div className="pfp" onClick={handleAccountClick}>
-            <span id='icon' class="icon material-symbols-outlined">
-          edit
-          </span> 
-          <div className="username">
-          <h1>User!</h1>    
-          </div>
-          </div>
-         
-          <div className="sidebuttons">
-            <a onClick={handleHomeClick}>
-              <span className="material-symbols-outlined" >
-                home
-              </span>
-              <h2>Dashboard</h2>
-            </a>
-            <a onClick={handleBorrowClick}>
-              <span className="material-symbols-outlined">
-                book
-              </span>
-              <h2>Borrow</h2>
-            </a>
-            <a onClick={handleReturnClick} >
-              <span className="material-symbols-outlined" >
-                keyboard_return
-              </span>
-              <h2>Return</h2>
-            </a>
-            <a href="#">
-              <span className="material-symbols-outlined">logout</span>
-              <h2>Logout</h2>
-            </a>
+    <div className="page-shell">
+      <aside className="page-sidebar">
+        <div>
+          <div className="page-brand">
+            <div className="page-brand-mark">GG</div>
+            <div>
+              <h1>GearGuard</h1>
+              <p>Equipment Tracker</p>
             </div>
-        </div>
-      </div>
-    </aside>
-
-       
-          <div className="content">
-
-            <div className="upper">
-              
-               <div className="logo">
-                </div>
-                <h1>Welcome to GearGuard!</h1> 
-              </div>
-            
-            <div className="lower">
-                 <div className="table">
-                    <div className="changeinfo">
-                        <div className="usernamechange">
-                            <h2>Change your name</h2>
-                        <span className="p-float-label">
-                             <InputText id="username" name={name} onChange={(e) => setUsername(e.target.name)} />
-                            <label htmlFor="username">Username</label>
-                         </span>
-                        </div>
-                        <div className="password">
-                            <h2>
-                            Change your password
-                            </h2>
-                        <span className="p-float-label">
-                            <Password id='password' inputId="password" style={{fontFamily:'Poppins'}} password={password} onChange={(e) => setPassword(e.target.password)} />
-                             <label htmlFor="password">Password</label>
-                        </span>
-
-                        </div>
-                        <Button className='cbtn' label="Confirm" />
-                    </div>
-                 </div>
-            </div>
-            
           </div>
-          <footer>
-      <div className="footer-content">
-      <h3>GearGuard</h3>
-            <p>Praise be Jesus and Mary! Now and Forever!</p>
-            
-        </div>
-    </footer>
 
+          <nav className="page-nav" aria-label="Main navigation">
+            {navItems.map((item) => (
+              <button
+                key={item.path}
+                type="button"
+                className={`page-nav-btn ${location.pathname === item.path ? "is-active" : ""}`}
+                onClick={() => navigate(item.path)}
+              >
+                <i className={item.icon} />
+                <span>{item.label}</span>
+              </button>
+            ))}
+          </nav>
+        </div>
+
+        <button type="button" className="page-logout-btn" onClick={handleLogout}>
+          <i className="pi pi-sign-out" />
+          <span>Logout</span>
+        </button>
+      </aside>
+
+      <main className="page-main">
+        <header className="page-header">
+          <h2>Account Settings</h2>
+          <p>Manage profile details and secure your account credentials.</p>
+        </header>
+
+        <section className="page-content-card">
+          <div className="form-grid">
+            <div className="field-group">
+              <label htmlFor="account-username">Display Name</label>
+              <InputText
+                id="account-username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="Enter your username"
+              />
+            </div>
+
+            <div className="field-group">
+              <label htmlFor="account-password">New Password</label>
+              <Password
+                inputId="account-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                toggleMask
+                feedback={false}
+                placeholder="Enter a new password"
+              />
+            </div>
+          </div>
+
+          <div className="action-row">
+            <Button
+              label="Save Changes"
+              icon="pi pi-save"
+              className="primary-btn"
+              onClick={handleSave}
+            />
+          </div>
+        </section>
+      </main>
     </div>
-    </>
-  )
+  );
 }
 
-export default Account
+export default Account;
