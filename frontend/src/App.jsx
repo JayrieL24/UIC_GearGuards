@@ -60,9 +60,16 @@ function App() {
       navigate('/login');
       return;
     }
+    
+    // Redirect admin to admin dashboard
+    if (user?.role === 'ADMIN') {
+      navigate('/admin/dashboard');
+      return;
+    }
+    
     loadProducts();
     checkBackendHealth();
-  }, [loadProducts, checkBackendHealth, navigate]);
+  }, [loadProducts, checkBackendHealth, navigate, user]);
 
   const metrics = useMemo(() => {
     const borrowed = products.filter(

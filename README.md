@@ -93,3 +93,13 @@ Frontend auth pages:
 
 - Keep secrets in `backend/.env` only. Do not commit `.env`.
 - If Supabase direct connection fails on your network, use the Supabase pooler URI instead.
+
+
+
+
+SAMPLE ACCOUNTS
+
+admin1 (Admin) - password: AdminPass123!
+handler1 (User Handler) - password: HandlerPass123!
+student1 (Borrower/Student) - password: StudentPass123!
+personnel1 (Borrower/Personnel) - password: PersonnelPass123!   

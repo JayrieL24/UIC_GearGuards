@@ -5,21 +5,34 @@ import {
   clearSession,
   fetchPendingRegistrations,
   getStoredUser,
+  getToken,
   rejectRegistration,
 } from "../../lib/auth";
+import "../../CSS/AdminApprovals.css";
+
+const navItems = [
+  { label: 'Dashboard', icon: 'pi pi-home', path: '/admin/dashboard' },
+  { label: 'Inventory', icon: 'pi pi-box', path: '/admin/inventory' },
+  { label: 'Borrows', icon: 'pi pi-list', path: '/admin/borrows' },
+  { label: 'Reports', icon: 'pi pi-chart-bar', path: '/admin/reports' },
+  { label: 'Approvals', icon: 'pi pi-check-circle', path: '/admin/approvals' },
+];
 
 function Approvals() {
   const navigate = useNavigate();
+  const token = getToken();
   const [pending, setPending] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [busyId, setBusyId] = useState(null);
+  const [successMessage, setSuccessMessage] = useState("");
 
   const user = getStoredUser();
 
   const loadPending = async () => {
     setLoading(true);
     setError("");
+    setSuccessMessage("");
     try {
       const data = await fetchPendingRegistrations();
       setPending(data);
@@ -31,7 +44,7 @@ function Approvals() {
   };
 
   useEffect(() => {
-    if (!user || user.role !== "ADMIN") {
+    if (!token || user?.role !== "ADMIN") {
       navigate("/login");
       return;
     }
@@ -40,8 +53,11 @@ function Approvals() {
 
   const handleApprove = async (item, role) => {
     setBusyId(item.user_id);
+    setError("");
+    setSuccessMessage("");
     try {
       await approveRegistration(item.user_id, role);
+      setSuccessMessage(`${item.username} approved as ${role}`);
       await loadPending();
     } catch (err) {
       setError(err.message);
@@ -52,8 +68,11 @@ function Approvals() {
 
   const handleReject = async (item) => {
     setBusyId(item.user_id);
+    setError("");
+    setSuccessMessage("");
     try {
       await rejectRegistration(item.user_id);
+      setSuccessMessage(`${item.username} rejected`);
       await loadPending();
     } catch (err) {
       setError(err.message);
@@ -62,82 +81,137 @@ function Approvals() {
     }
   };
 
-  const logout = () => {
+  const handleLogout = () => {
     clearSession();
     navigate("/login");
   };
 
   return (
-    <div className="page-shell">
-      <main className="page-main" style={{ maxWidth: 980, margin: "0 auto", width: "100%" }}>
-        <header className="page-header">
-          <h2>Admin Approvals</h2>
-          <p>Main admin can approve registrations and assign roles.</p>
-        </header>
+    <div className="dashboard-shell">
+      <div className="bg-orb bg-orb-1" />
+      <div className="bg-orb bg-orb-2" />
 
-        <section className="page-content-card">
-          <div className="action-row" style={{ marginTop: 0, marginBottom: 12 }}>
-            <button className="primary-btn" type="button" onClick={logout}>
-              Logout
-            </button>
+      <aside className="sidebar-panel">
+        <div>
+          <div className="brand-block">
+            <div className="brand-mark">GG</div>
+            <div>
+              <h1>GearGuard</h1>
+              <p>Admin Panel</p>
+            </div>
           </div>
 
-          {loading ? <p>Loading pending registrations...</p> : null}
-          {error ? <p style={{ color: "#b42318" }}>{error}</p> : null}
+          <nav className="nav-list" aria-label="Admin navigation">
+            {navItems.map((item) => (
+              <button
+                key={item.path}
+                type="button"
+                className={`nav-btn ${item.path === '/admin/approvals' ? 'is-active' : ''}`}
+                onClick={() => navigate(item.path)}
+              >
+                <i className={item.icon} />
+                <span>{item.label}</span>
+              </button>
+            ))}
+          </nav>
+        </div>
 
-          {!loading && !pending.length ? <p>No pending registrations.</p> : null}
+        <button type="button" className="logout-btn" onClick={handleLogout}>
+          <i className="pi pi-sign-out" />
+          <span>Logout</span>
+        </button>
+      </aside>
 
-          {pending.map((item) => (
-            <article
-              key={item.user_id}
-              style={{
-                border: "1px solid #dde3f2",
-                borderRadius: 12,
-                padding: 12,
-                marginBottom: 10,
-              }}
-            >
-              <p style={{ margin: 0, fontWeight: 700 }}>{item.username}</p>
-              <p style={{ margin: "4px 0", color: "#5b6475" }}>{item.email || "No email"}</p>
-              <p style={{ margin: "4px 0", color: "#5b6475" }}>
-                Requested: <strong>{item.requested_role}</strong>
-              </p>
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                <button
-                  className="primary-btn"
-                  type="button"
-                  disabled={busyId === item.user_id}
-                  onClick={() => handleApprove(item, "USER")}
-                >
-                  Approve as User
-                </button>
-                <button
-                  className="primary-btn"
-                  type="button"
-                  disabled={busyId === item.user_id}
-                  onClick={() => handleApprove(item, "HANDLER")}
-                >
-                  Approve as Handler
-                </button>
-                <button
-                  type="button"
-                  disabled={busyId === item.user_id}
-                  onClick={() => handleReject(item)}
-                  style={{
-                    borderRadius: 10,
-                    border: "1px solid #efb3b3",
-                    background: "#fff3f2",
-                    color: "#b42318",
-                    padding: "10px 14px",
-                    fontWeight: 700,
-                    cursor: "pointer",
-                  }}
-                >
-                  Reject
-                </button>
+      <main className="main-panel">
+        <header className="top-row">
+          <div>
+            <h2>User Approvals</h2>
+            <p>Review and approve pending user registrations.</p>
+            <p style={{ marginTop: 8, fontWeight: 700 }}>
+              {user ? `${user.username} (${user.role})` : 'Guest mode'}
+            </p>
+          </div>
+        </header>
+
+        {successMessage && (
+          <div className="success-banner">
+            <i className="pi pi-check-circle" />
+            {successMessage}
+          </div>
+        )}
+
+        {error && (
+          <div className="error-banner">
+            <i className="pi pi-exclamation-circle" />
+            {error}
+          </div>
+        )}
+
+        <section className="approvals-section">
+          {loading ? (
+            <div className="loading-state">
+              <i className="pi pi-spin pi-spinner" />
+              <p>Loading pending registrations...</p>
+            </div>
+          ) : pending.length === 0 ? (
+            <div className="empty-state">
+              <i className="pi pi-inbox" />
+              <p>No pending registrations</p>
+              <span>All users have been approved or rejected.</span>
+            </div>
+          ) : (
+            <div className="approvals-list">
+              <div className="approvals-header">
+                <h3>Pending Registrations ({pending.length})</h3>
               </div>
-            </article>
-          ))}
+              {pending.map((item) => (
+                <div key={item.user_id} className="approval-card">
+                  <div className="card-header">
+                    <div className="user-info">
+                      <h4>{item.username}</h4>
+                      <p className="email">{item.email || "No email provided"}</p>
+                    </div>
+                    <span className="requested-role">
+                      Requested: <strong>{item.requested_role}</strong>
+                    </span>
+                  </div>
+
+                  <div className="card-actions">
+                    <button
+                      className="approve-btn user-btn"
+                      type="button"
+                      disabled={busyId === item.user_id}
+                      onClick={() => handleApprove(item, "USER")}
+                      title="Approve as Borrower"
+                    >
+                      <i className="pi pi-check" />
+                      Approve as User
+                    </button>
+                    <button
+                      className="approve-btn handler-btn"
+                      type="button"
+                      disabled={busyId === item.user_id}
+                      onClick={() => handleApprove(item, "HANDLER")}
+                      title="Approve as Handler"
+                    >
+                      <i className="pi pi-check" />
+                      Approve as Handler
+                    </button>
+                    <button
+                      className="reject-btn"
+                      type="button"
+                      disabled={busyId === item.user_id}
+                      onClick={() => handleReject(item)}
+                      title="Reject registration"
+                    >
+                      <i className="pi pi-times" />
+                      Reject
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </section>
       </main>
     </div>

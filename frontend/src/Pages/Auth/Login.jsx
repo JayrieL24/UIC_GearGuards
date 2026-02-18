@@ -13,7 +13,7 @@ function Login() {
     const user = getStoredUser();
     if (!token || !user) return;
     if (user.role === "ADMIN") {
-      navigate("/admin/approvals");
+      navigate("/admin/dashboard");
     } else {
       navigate("/dashboard");
     }
@@ -32,7 +32,7 @@ function Login() {
     try {
       const result = await loginRequest(form);
       if (result.role === "ADMIN") {
-        navigate("/admin/approvals");
+        navigate("/admin/dashboard");
       } else {
         navigate("/dashboard");
       }
