@@ -7,7 +7,7 @@ function Register() {
     username: "",
     email: "",
     password: "",
-    requested_role: "USER",
+    requested_role: "STUDENT",
   });
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -27,7 +27,7 @@ function Register() {
     try {
       const result = await registerRequest(form);
       setMessage(result.message || "Registration submitted for approval.");
-      setForm({ username: "", email: "", password: "", requested_role: "USER" });
+      setForm({ username: "", email: "", password: "", requested_role: "STUDENT" });
     } catch (err) {
       setError(err.message);
     } finally {
@@ -44,10 +44,10 @@ function Register() {
         <section className="auth-hero">
           <div className="auth-brand">GG</div>
           <h1>Join GearGuard</h1>
-          <p>Register as a borrower or handler. Main admin approves and assigns final access.</p>
+          <p>Register as a student, personnel, or staff member. Admin approves and assigns final access.</p>
           <ul>
-            <li>Borrower role for students/personnel</li>
-            <li>Handler role for delegated operations</li>
+            <li>Student/Personnel roles for borrowing equipment</li>
+            <li>Staff role for delegated operations</li>
             <li>Approval-first security model</li>
           </ul>
         </section>
@@ -84,8 +84,9 @@ function Register() {
             <div className="field-group">
               <label htmlFor="reg-role">Requested Role</label>
               <select id="reg-role" name="requested_role" value={form.requested_role} onChange={onChange}>
-                <option value="USER">User (Borrower)</option>
-                <option value="HANDLER">User Handler</option>
+                <option value="STUDENT">Student</option>
+                <option value="PERSONNEL">Personnel</option>
+                <option value="HANDLER">Staff</option>
               </select>
             </div>
 

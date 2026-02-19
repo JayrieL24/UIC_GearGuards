@@ -6,21 +6,20 @@ import '../../CSS/AdminDashboard.css';
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
 
 const navItems = [
-  { label: 'Dashboard', icon: 'pi pi-home', path: '/admin/dashboard' },
-  { label: 'Inventory', icon: 'pi pi-box', path: '/admin/inventory' },
-  { label: 'Borrows', icon: 'pi pi-list', path: '/admin/borrows' },
-  { label: 'Borrow Transactions', icon: 'pi pi-shopping-cart', path: '/admin/borrow-transactions' },
-  { label: 'Reports', icon: 'pi pi-chart-bar', path: '/admin/reports' },
-  { label: 'Approvals', icon: 'pi pi-check-circle', path: '/admin/approvals' },
+  { label: 'Dashboard', icon: 'pi pi-home', path: '/handler/dashboard' },
+  { label: 'Inventory', icon: 'pi pi-box', path: '/handler/inventory' },
+  { label: 'Borrows', icon: 'pi pi-list', path: '/handler/borrows' },
+  { label: 'Borrow Transactions', icon: 'pi pi-shopping-cart', path: '/handler/borrow-transactions' },
+  { label: 'Reports', icon: 'pi pi-chart-bar', path: '/handler/reports' },
 ];
 
-export function AdminDashboard() {
+export function HandlerDashboard() {
   const navigate = useNavigate();
   const token = getToken();
   const user = getStoredUser();
 
-  // Immediate redirect if not authenticated
-  if (!token || !user || user.role !== 'ADMIN') {
+  // Immediate redirect if not authenticated or not a handler
+  if (!token || !user || user.role !== 'HANDLER') {
     clearSession();
     window.location.href = '/login';
     return null;
@@ -116,16 +115,16 @@ export function AdminDashboard() {
             <div className="brand-mark">GG</div>
             <div>
               <h1>GearGuard</h1>
-              <p>Admin Panel</p>
+              <p>Handler Panel</p>
             </div>
           </div>
 
-          <nav className="nav-list" aria-label="Admin navigation">
+          <nav className="nav-list" aria-label="Handler navigation">
             {navItems.map((item) => (
               <button
                 key={item.path}
                 type="button"
-                className={`nav-btn ${item.path === '/admin/dashboard' ? 'is-active' : ''}`}
+                className={`nav-btn ${item.path === '/handler/dashboard' ? 'is-active' : ''}`}
                 onClick={() => navigate(item.path)}
               >
                 <i className={item.icon} />
@@ -144,7 +143,7 @@ export function AdminDashboard() {
       <main className="main-panel">
         <header className="top-row">
           <div>
-            <h2>Admin Dashboard</h2>
+            <h2>Handler Dashboard</h2>
             <p>Manage equipment borrows and monitor system activity.</p>
             <p style={{ marginTop: 8, fontWeight: 700 }}>
               {user ? `${user.username} (${user.role})` : 'Guest mode'}

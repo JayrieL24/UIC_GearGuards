@@ -31,15 +31,14 @@ function BarChart({ data, title }) {
 }
 
 const navItems = [
-  { label: 'Dashboard', icon: 'pi pi-home', path: '/admin/dashboard' },
-  { label: 'Inventory', icon: 'pi pi-box', path: '/admin/inventory' },
-  { label: 'Borrows', icon: 'pi pi-list', path: '/admin/borrows' },
-  { label: 'Borrow Transactions', icon: 'pi pi-shopping-cart', path: '/admin/borrow-transactions' },
-  { label: 'Reports', icon: 'pi pi-chart-bar', path: '/admin/reports' },
-  { label: 'Approvals', icon: 'pi pi-check-circle', path: '/admin/approvals' },
+  { label: 'Dashboard', icon: 'pi pi-home', path: '/handler/dashboard' },
+  { label: 'Inventory', icon: 'pi pi-box', path: '/handler/inventory' },
+  { label: 'Borrows', icon: 'pi pi-list', path: '/handler/borrows' },
+  { label: 'Borrow Transactions', icon: 'pi pi-shopping-cart', path: '/handler/borrow-transactions' },
+  { label: 'Reports', icon: 'pi pi-chart-bar', path: '/handler/reports' },
 ];
 
-export function AdminReports() {
+export function HandlerReports() {
   const navigate = useNavigate();
   const user = getStoredUser();
   const token = getToken();
@@ -100,7 +99,7 @@ export function AdminReports() {
   };
 
   useEffect(() => {
-    if (!token || user?.role !== 'ADMIN') {
+    if (!token || user?.role !== 'HANDLER') {
       navigate('/login');
       return;
     }
@@ -127,7 +126,7 @@ export function AdminReports() {
             <div className="brand-mark">GG</div>
             <div>
               <h1>GearGuard</h1>
-              <p>Admin Panel</p>
+              <p>Handler Panel</p>
             </div>
           </div>
 
@@ -136,7 +135,7 @@ export function AdminReports() {
               <button
                 key={item.path}
                 type="button"
-                className={`nav-btn ${item.path === '/admin/reports' ? 'is-active' : ''}`}
+                className={`nav-btn ${item.path === '/handler/reports' ? 'is-active' : ''}`}
                 onClick={() => navigate(item.path)}
               >
                 <i className={item.icon} />

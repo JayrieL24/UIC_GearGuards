@@ -1,16 +1,16 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Dropdown } from "primereact/dropdown";
 import { InputNumber } from "primereact/inputnumber";
 import { Button } from "primereact/button";
 import itemsData from "../../JSON/Items.json";
-import { clearSession } from "../../lib/auth";
+import { clearSession, getStoredUser, getToken } from "../../lib/auth";
 
 const navItems = [
-  { label: "Dashboard", icon: "pi pi-home", path: "/dashboard" },
-  { label: "Borrow", icon: "pi pi-book", path: "/Borrow" },
-  { label: "Return", icon: "pi pi-replay", path: "/Return" },
-  { label: "Account", icon: "pi pi-user", path: "/Account" },
+  { label: "Dashboard", icon: "pi pi-home", path: "/borrower/dashboard" },
+  { label: "Browse Items", icon: "pi pi-search", path: "/borrower/browse" },
+  { label: "My Borrows", icon: "pi pi-list", path: "/borrower/my-borrows" },
+  { label: "Account", icon: "pi pi-user", path: "/borrower/account" },
 ];
 
 function Return() {
@@ -18,6 +18,22 @@ function Return() {
   const location = useLocation();
   const [quantity, setQuantity] = useState(1);
   const [selectedItem, setSelectedItem] = useState(null);
+
+  useEffect(() => {
+    const user = getStoredUser();
+    const token = getToken();
+    
+    if (!token) {
+      navigate('/login', { replace: true });
+      return;
+    }
+    
+    if (user?.role === 'STUDENT' || user?.role === 'PERSONNEL') {
+      navigate('/borrower/my-borrows', { replace: true });
+      return;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const items = useMemo(
     () =>

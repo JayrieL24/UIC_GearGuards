@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getToken, getStoredUser, clearSession } from '../../lib/auth.js';
 import '../../CSS/AdminInventory.css';
@@ -9,6 +9,7 @@ const navItems = [
   { label: 'Dashboard', icon: 'pi pi-home', path: '/admin/dashboard' },
   { label: 'Inventory', icon: 'pi pi-box', path: '/admin/inventory' },
   { label: 'Borrows', icon: 'pi pi-list', path: '/admin/borrows' },
+  { label: 'Borrow Transactions', icon: 'pi pi-shopping-cart', path: '/admin/borrow-transactions' },
   { label: 'Reports', icon: 'pi pi-chart-bar', path: '/admin/reports' },
   { label: 'Approvals', icon: 'pi pi-check-circle', path: '/admin/approvals' },
 ];
@@ -263,6 +264,28 @@ export function AdminInventory() {
           </div>
         </header>
 
+        {/* Scanner Info Banner */}
+        <div style={{
+          background: 'linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%)',
+          border: '2px solid #3b82f6',
+          borderRadius: '12px',
+          padding: '16px 20px',
+          marginBottom: '20px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+        }}>
+          <i className="pi pi-qrcode" style={{ fontSize: '24px', color: '#1d4ed8' }} />
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 700, color: '#1e40af', marginBottom: '4px', fontSize: '15px' }}>
+              📦 Barcode Scanner Ready
+            </div>
+            <div style={{ fontSize: '13px', color: '#2563eb' }}>
+              When adding stock, click "Enable Scanner" and scan the barcode on the physical item. It will auto-save with the scanned barcode as Reference ID.
+            </div>
+          </div>
+        </div>
+
         {error && <div className="error-banner">{error}</div>}
 
         {/* Category Tabs */}
@@ -473,6 +496,24 @@ function InstanceModal({ instance, onClose, onUpdate, onDelete }) {
 function AddInstanceModal({ item, onClose, onAdd }) {
   const [referenceId, setReferenceId] = useState('');
   const [notes, setNotes] = useState('');
+  const [scanMode, setScanMode] = useState(false);
+  const barcodeInputRef = useRef(null);
+
+  // Auto-focus when scan mode is enabled
+  useEffect(() => {
+    if (scanMode && barcodeInputRef.current) {
+      barcodeInputRef.current.focus();
+    }
+  }, [scanMode]);
+
+  const handleScanBarcode = () => {
+    if (!referenceId.trim()) {
+      alert('Please scan or enter a barcode');
+      return;
+    }
+    // Auto-save when barcode is scanned
+    handleAdd();
+  };
 
   const handleAdd = () => {
     if (!referenceId.trim()) {
@@ -494,14 +535,62 @@ function AddInstanceModal({ item, onClose, onAdd }) {
 
         <div className="modal-body">
           <div className="form-group">
-            <label>Reference ID *</label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              Reference ID (Barcode) *
+              <button
+                type="button"
+                onClick={() => setScanMode(!scanMode)}
+                style={{
+                  padding: '4px 12px',
+                  background: scanMode ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : 'linear-gradient(135deg, #0f766e 0%, #14b8a6 100%)',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '6px',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  transition: 'all 0.3s ease',
+                }}
+              >
+                <i className={scanMode ? 'pi pi-check' : 'pi pi-qrcode'} style={{ fontSize: '11px' }} />
+                {scanMode ? 'Scanner Active' : 'Enable Scanner'}
+              </button>
+            </label>
             <input
+              ref={barcodeInputRef}
               type="text"
               value={referenceId}
               onChange={(e) => setReferenceId(e.target.value)}
-              placeholder="e.g., LAP001, MOU042"
-              autoFocus
+              onKeyPress={(e) => {
+                if (e.key === 'Enter' && scanMode) {
+                  handleScanBarcode();
+                }
+              }}
+              placeholder={scanMode ? "🔍 Scanner Ready - Scan barcode on item..." : "e.g., LAP001, MOU042"}
+              autoFocus={!scanMode}
+              style={{
+                border: scanMode ? '2px solid #0f766e' : '1px solid #ddd',
+                boxShadow: scanMode ? '0 0 0 3px rgba(15, 118, 110, 0.1)' : 'none',
+                transition: 'all 0.3s ease',
+              }}
             />
+            {scanMode && (
+              <p style={{ 
+                fontSize: '13px', 
+                color: '#059669', 
+                marginTop: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                fontWeight: 600
+              }}>
+                <i className="pi pi-info-circle" />
+                Scan the barcode on the physical item. It will auto-save after scanning.
+              </p>
+            )}
           </div>
 
           <div className="form-group">
@@ -519,7 +608,7 @@ function AddInstanceModal({ item, onClose, onAdd }) {
           <button className="btn-secondary" onClick={onClose}>Cancel</button>
           <button className="btn-primary" onClick={handleAdd}>
             <i className="pi pi-plus" />
-            Add Stock
+            {scanMode ? 'Save Manually' : 'Add Stock'}
           </button>
         </div>
       </div>

@@ -12,10 +12,17 @@ function Login() {
     const token = getToken();
     const user = getStoredUser();
     if (!token || !user) return;
+    
+    console.log('Login redirect check - User role:', user.role);
+    
     if (user.role === "ADMIN") {
-      navigate("/admin/dashboard");
+      navigate("/admin/dashboard", { replace: true });
+    } else if (user.role === "HANDLER") {
+      navigate("/handler/dashboard", { replace: true });
+    } else if (user.role === "STUDENT" || user.role === "PERSONNEL" || user.role === "USER") {
+      navigate("/borrower/dashboard", { replace: true });
     } else {
-      navigate("/dashboard");
+      navigate("/dashboard", { replace: true });
     }
   }, [navigate]);
 
@@ -31,10 +38,16 @@ function Login() {
 
     try {
       const result = await loginRequest(form);
+      console.log('Login successful - User role:', result.role);
+      
       if (result.role === "ADMIN") {
-        navigate("/admin/dashboard");
+        navigate("/admin/dashboard", { replace: true });
+      } else if (result.role === "HANDLER") {
+        navigate("/handler/dashboard", { replace: true });
+      } else if (result.role === "STUDENT" || result.role === "PERSONNEL" || result.role === "USER") {
+        navigate("/borrower/dashboard", { replace: true });
       } else {
-        navigate("/dashboard");
+        navigate("/dashboard", { replace: true });
       }
     } catch (err) {
       setError(err.message);

@@ -17,59 +17,89 @@ const navItems = [
 
 function App() {
   const navigate = useNavigate();
-  const user = getStoredUser();
   const [products, setProducts] = useState([]);
   const [backendHealth, setBackendHealth] = useState({
     loading: true,
     ok: false,
     text: 'Checking backend...',
   });
+  const [redirected, setRedirected] = useState(false);
 
   const loadProducts = useCallback(() => {
     ForTableJSON.getProductsMini().then((data) => setProducts(data || []));
   }, []);
 
-  const checkBackendHealth = useCallback(async () => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/health/`);
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-
-      const data = await response.json();
-      const isOk = data?.status === 'ok';
-
-      setBackendHealth({
-        loading: false,
-        ok: isOk,
-        text: isOk
-          ? `Backend connected (${data.service})`
-          : 'Backend responded with unexpected payload',
-      });
-    } catch (error) {
-      setBackendHealth({
-        loading: false,
-        ok: false,
-        text: `Backend unavailable (${error.message})`,
-      });
-    }
-  }, []);
-
+  // Redirect check - runs ONCE on mount
   useEffect(() => {
-    if (!getToken()) {
-      navigate('/login');
+    if (redirected) return;
+    
+    const token = getToken();
+    const user = getStoredUser();
+    
+    console.log('App.jsx redirect check - User:', user?.username, 'Role:', user?.role);
+    
+    if (!token) {
+      navigate('/login', { replace: true });
+      setRedirected(true);
       return;
     }
     
-    // Redirect admin to admin dashboard
+    // CRITICAL: Students/Personnel should NEVER see this page
+    if (user?.role === 'STUDENT' || user?.role === 'PERSONNEL') {
+      console.log('Redirecting to borrower dashboard');
+      setRedirected(true);
+      window.location.href = '/borrower/dashboard';
+      return;
+    }
+    
     if (user?.role === 'ADMIN') {
-      navigate('/admin/dashboard');
+      console.log('Redirecting to admin dashboard');
+      setRedirected(true);
+      window.location.href = '/admin/dashboard';
       return;
     }
     
+    if (user?.role === 'HANDLER') {
+      console.log('Redirecting to handler dashboard');
+      setRedirected(true);
+      window.location.href = '/handler/dashboard';
+      return;
+    }
+    
+    // Only load if we're staying on this page
+    setRedirected(true);
     loadProducts();
-    checkBackendHealth();
-  }, [loadProducts, checkBackendHealth, navigate, user]);
+    
+    // Check backend health ONCE
+    let cancelled = false;
+    
+    fetch(`${API_BASE_URL}/api/health/`)
+      .then(response => {
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return response.json();
+      })
+      .then(data => {
+        if (cancelled) return;
+        const isOk = data?.status === 'ok';
+        setBackendHealth({
+          loading: false,
+          ok: isOk,
+          text: isOk ? `Backend connected (${data.service})` : 'Backend responded with unexpected payload',
+        });
+      })
+      .catch(error => {
+        if (cancelled) return;
+        setBackendHealth({
+          loading: false,
+          ok: false,
+          text: `Backend unavailable (${error.message})`,
+        });
+      });
+    
+    return () => {
+      cancelled = true;
+    };
+  }, [navigate, loadProducts, redirected]);
 
   const metrics = useMemo(() => {
     const borrowed = products.filter(
@@ -96,6 +126,8 @@ function App() {
     clearSession();
     navigate('/login');
   };
+
+  const user = getStoredUser();
 
   return (
     <div className="dashboard-shell">

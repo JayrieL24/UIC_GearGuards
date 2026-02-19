@@ -6,7 +6,9 @@ class UserProfile(models.Model):
     class Roles(models.TextChoices):
         ADMIN = "ADMIN", "Admin (Management)"
         HANDLER = "HANDLER", "User Handler"
-        USER = "USER", "User (Borrower)"
+        STUDENT = "STUDENT", "Student (Borrower)"
+        PERSONNEL = "PERSONNEL", "Personnel (Borrower)"
+        USER = "USER", "User (Borrower)"  # Legacy role, kept for backwards compatibility
 
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,
@@ -89,10 +91,12 @@ class ItemInstance(models.Model):
 
 class Borrow(models.Model):
     class Status(models.TextChoices):
+        PENDING = "PENDING", "Pending Approval"
         ACTIVE = "ACTIVE", "Active"
         RETURNED = "RETURNED", "Returned"
         LATE = "LATE", "Late"
         NOT_RETURNED = "NOT_RETURNED", "Not Returned"
+        REJECTED = "REJECTED", "Rejected"
 
     class NotReturnedReason(models.TextChoices):
         LOST = "LOST", "Lost"
@@ -116,7 +120,7 @@ class Borrow(models.Model):
     borrow_date = models.DateTimeField(auto_now_add=True)
     due_date = models.DateTimeField()
     return_date = models.DateTimeField(null=True, blank=True)
-    status = models.CharField(max_length=20, choices=Status.choices, default=Status.ACTIVE)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
     not_returned_reason = models.CharField(
         max_length=20,
         choices=NotReturnedReason.choices,
@@ -135,6 +139,7 @@ class BorrowLog(models.Model):
     """Timeline log of all actions performed on a borrow transaction"""
     class ActionType(models.TextChoices):
         CREATED = "CREATED", "Borrow Created"
+        REQUESTED = "REQUESTED", "Borrow Requested"
         APPROVED = "APPROVED", "Approved by Handler"
         REJECTED = "REJECTED", "Rejected by Handler"
         RETURNED = "RETURNED", "Item Returned"

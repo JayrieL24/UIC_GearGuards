@@ -28,14 +28,14 @@ class Command(BaseCommand):
                 "username": "student1",
                 "email": "student1@gearguards.com",
                 "password": "StudentPass123!",
-                "role": UserProfile.Roles.USER,
+                "role": UserProfile.Roles.STUDENT,
                 "is_superuser": False,
             },
             {
                 "username": "personnel1",
                 "email": "personnel1@gearguards.com",
                 "password": "PersonnelPass123!",
-                "role": UserProfile.Roles.USER,
+                "role": UserProfile.Roles.PERSONNEL,
                 "is_superuser": False,
             },
         ]

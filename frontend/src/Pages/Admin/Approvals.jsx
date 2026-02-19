@@ -14,6 +14,7 @@ const navItems = [
   { label: 'Dashboard', icon: 'pi pi-home', path: '/admin/dashboard' },
   { label: 'Inventory', icon: 'pi pi-box', path: '/admin/inventory' },
   { label: 'Borrows', icon: 'pi pi-list', path: '/admin/borrows' },
+  { label: 'Borrow Transactions', icon: 'pi pi-shopping-cart', path: '/admin/borrow-transactions' },
   { label: 'Reports', icon: 'pi pi-chart-bar', path: '/admin/reports' },
   { label: 'Approvals', icon: 'pi pi-check-circle', path: '/admin/approvals' },
 ];
@@ -181,21 +182,31 @@ function Approvals() {
                       className="approve-btn user-btn"
                       type="button"
                       disabled={busyId === item.user_id}
-                      onClick={() => handleApprove(item, "USER")}
-                      title="Approve as Borrower"
+                      onClick={() => handleApprove(item, "STUDENT")}
+                      title="Approve as Student"
                     >
                       <i className="pi pi-check" />
-                      Approve as User
+                      Approve as Student
+                    </button>
+                    <button
+                      className="approve-btn user-btn"
+                      type="button"
+                      disabled={busyId === item.user_id}
+                      onClick={() => handleApprove(item, "PERSONNEL")}
+                      title="Approve as Personnel"
+                    >
+                      <i className="pi pi-check" />
+                      Approve as Personnel
                     </button>
                     <button
                       className="approve-btn handler-btn"
                       type="button"
                       disabled={busyId === item.user_id}
                       onClick={() => handleApprove(item, "HANDLER")}
-                      title="Approve as Handler"
+                      title="Approve as Staff"
                     >
                       <i className="pi pi-check" />
-                      Approve as Handler
+                      Approve as Staff
                     </button>
                     <button
                       className="reject-btn"

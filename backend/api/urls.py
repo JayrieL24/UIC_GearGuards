@@ -25,6 +25,20 @@ from .views import (
     admin_update_item_instance,
     admin_delete_item_instance,
     admin_create_item,
+    pending_borrow_requests,
+    approve_borrow_request,
+    reject_borrow_request,
+    create_borrow_request,
+    scan_item_barcode,
+    scan_user_rfid,
+    process_walkin_borrow,
+    borrower_stats,
+    borrower_my_borrows,
+    borrower_categories,
+    borrower_category_items,
+    borrower_request_borrow,
+    borrower_notifications,
+    borrower_notification_count,
 )
 
 urlpatterns = [
@@ -53,4 +67,21 @@ urlpatterns = [
     path("admin/items/<int:item_id>/instances/add/", admin_add_item_instance, name="admin-add-item-instance"),
     path("admin/item-instances/<int:instance_id>/", admin_update_item_instance, name="admin-update-item-instance"),
     path("admin/item-instances/<int:instance_id>/delete/", admin_delete_item_instance, name="admin-delete-item-instance"),
+    # Borrow request endpoints
+    path("borrow-requests/", pending_borrow_requests, name="pending-borrow-requests"),
+    path("borrow-requests/<int:borrow_id>/approve/", approve_borrow_request, name="approve-borrow-request"),
+    path("borrow-requests/<int:borrow_id>/reject/", reject_borrow_request, name="reject-borrow-request"),
+    path("borrow-requests/create/", create_borrow_request, name="create-borrow-request"),
+    # Scanning and walk-in borrow endpoints
+    path("scan-item/<str:barcode>/", scan_item_barcode, name="scan-item-barcode"),
+    path("scan-rfid/<str:rfid>/", scan_user_rfid, name="scan-user-rfid"),
+    path("borrow-walkin/", process_walkin_borrow, name="process-walkin-borrow"),
+    # Borrower endpoints (Students & Personnel)
+    path("borrower/stats/", borrower_stats, name="borrower-stats"),
+    path("borrower/my-borrows/", borrower_my_borrows, name="borrower-my-borrows"),
+    path("borrower/categories/", borrower_categories, name="borrower-categories"),
+    path("borrower/categories/<int:category_id>/items/", borrower_category_items, name="borrower-category-items"),
+    path("borrower/request-borrow/", borrower_request_borrow, name="borrower-request-borrow"),
+    path("borrower/notifications/", borrower_notifications, name="borrower-notifications"),
+    path("borrower/notifications/count/", borrower_notification_count, name="borrower-notification-count"),
 ]

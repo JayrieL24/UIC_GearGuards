@@ -6,7 +6,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from .models import UserProfile, Borrow, Item, BorrowLog
+from .models import UserProfile, Borrow, Item, BorrowLog, Category, ItemInstance
 from .serializers import (
     ApprovalSerializer,
     LoginSerializer,
@@ -26,6 +26,17 @@ def _is_admin_user(user):
     if user.is_superuser:
         return True
     return hasattr(user, "profile") and user.profile.role == UserProfile.Roles.ADMIN and user.profile.is_approved
+
+
+def _is_handler_or_admin(user):
+    """Check if user is a handler or admin"""
+    if not user.is_authenticated:
+        return False
+    if user.is_superuser:
+        return True
+    if not hasattr(user, "profile") or not user.profile.is_approved:
+        return False
+    return user.profile.role in [UserProfile.Roles.ADMIN, UserProfile.Roles.HANDLER]
 
 
 @api_view(["GET"])
@@ -159,9 +170,9 @@ def reject_registration(request, user_id):
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def admin_dashboard_stats(request):
-    """Get dashboard statistics for admin"""
-    if not _is_admin_user(request.user):
-        return Response({"detail": "Admin access required."}, status=status.HTTP_403_FORBIDDEN)
+    """Get dashboard statistics for admin/handler"""
+    if not _is_handler_or_admin(request.user):
+        return Response({"detail": "Admin or Handler access required."}, status=status.HTTP_403_FORBIDDEN)
 
     total_borrows = Borrow.objects.count()
     active_borrows = Borrow.objects.filter(status=Borrow.Status.ACTIVE).count()
@@ -182,8 +193,8 @@ def admin_dashboard_stats(request):
 @permission_classes([IsAuthenticated])
 def admin_inventory(request):
     """Get all inventory items with availability"""
-    if not _is_admin_user(request.user):
-        return Response({"detail": "Admin access required."}, status=status.HTTP_403_FORBIDDEN)
+    if not _is_handler_or_admin(request.user):
+        return Response({"detail": "Admin or Handler access required."}, status=status.HTTP_403_FORBIDDEN)
 
     items = Item.objects.all()
     items_data = []
@@ -211,9 +222,9 @@ def admin_inventory(request):
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def admin_active_borrows(request):
-    """Get all active borrows for admin"""
-    if not _is_admin_user(request.user):
-        return Response({"detail": "Admin access required."}, status=status.HTTP_403_FORBIDDEN)
+    """Get all active borrows for admin/handler"""
+    if not _is_handler_or_admin(request.user):
+        return Response({"detail": "Admin or Handler access required."}, status=status.HTTP_403_FORBIDDEN)
 
     borrows = Borrow.objects.filter(status=Borrow.Status.ACTIVE).select_related(
         "item", "borrower", "handler"
@@ -225,9 +236,9 @@ def admin_active_borrows(request):
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def admin_archived_borrows(request):
-    """Get all archived borrows (returned, late, not returned) for admin"""
-    if not _is_admin_user(request.user):
-        return Response({"detail": "Admin access required."}, status=status.HTTP_403_FORBIDDEN)
+    """Get all archived borrows (returned, late, not returned) for admin/handler"""
+    if not _is_handler_or_admin(request.user):
+        return Response({"detail": "Admin or Handler access required."}, status=status.HTTP_403_FORBIDDEN)
 
     status_filter = request.query_params.get("status")
     
@@ -246,9 +257,9 @@ def admin_archived_borrows(request):
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def admin_all_borrows(request):
-    """Get all borrows for admin with optional filtering"""
-    if not _is_admin_user(request.user):
-        return Response({"detail": "Admin access required."}, status=status.HTTP_403_FORBIDDEN)
+    """Get all borrows for admin/handler with optional filtering"""
+    if not _is_handler_or_admin(request.user):
+        return Response({"detail": "Admin or Handler access required."}, status=status.HTTP_403_FORBIDDEN)
 
     borrows = Borrow.objects.select_related(
         "item", "item_instance", "borrower", "handler"
@@ -260,8 +271,8 @@ def admin_all_borrows(request):
 @permission_classes([IsAuthenticated])
 def admin_borrow_detail(request, borrow_id):
     """Get detailed information about a specific borrow including timeline logs"""
-    if not _is_admin_user(request.user):
-        return Response({"detail": "Admin access required."}, status=status.HTTP_403_FORBIDDEN)
+    if not _is_handler_or_admin(request.user):
+        return Response({"detail": "Admin or Handler access required."}, status=status.HTTP_403_FORBIDDEN)
 
     try:
         borrow = Borrow.objects.select_related(
@@ -280,8 +291,8 @@ def admin_borrow_detail(request, borrow_id):
 @permission_classes([IsAuthenticated])
 def admin_reports_analytics(request):
     """Get analytics data for reports"""
-    if not _is_admin_user(request.user):
-        return Response({"detail": "Admin access required."}, status=status.HTTP_403_FORBIDDEN)
+    if not _is_handler_or_admin(request.user):
+        return Response({"detail": "Admin or Handler access required."}, status=status.HTTP_403_FORBIDDEN)
 
     from django.utils import timezone
     from datetime import timedelta
@@ -362,9 +373,9 @@ def admin_reports_analytics(request):
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def admin_ai_recommendations(request):
-    """Get AI-powered recommendations for inventory management using Hugging Face"""
-    if not _is_admin_user(request.user):
-        return Response({"detail": "Admin access required."}, status=status.HTTP_403_FORBIDDEN)
+    """Get AI-powered recommendations for inventory management"""
+    if not _is_handler_or_admin(request.user):
+        return Response({"detail": "Admin or Handler access required."}, status=status.HTTP_403_FORBIDDEN)
 
     from django.utils import timezone
     from datetime import timedelta
@@ -461,9 +472,9 @@ def admin_ai_recommendations(request):
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def admin_ai_inventory_analysis(request):
-    """Get AI-powered inventory analysis using Hugging Face"""
-    if not _is_admin_user(request.user):
-        return Response({"detail": "Admin access required."}, status=status.HTTP_403_FORBIDDEN)
+    """Get AI-powered inventory analysis"""
+    if not _is_handler_or_admin(request.user):
+        return Response({"detail": "Admin or Handler access required."}, status=status.HTTP_403_FORBIDDEN)
 
     # Check if AI is available
     if not ai_service.is_ai_available():
@@ -537,8 +548,8 @@ def admin_ai_inventory_analysis(request):
 @permission_classes([IsAuthenticated])
 def admin_ai_borrow_analysis(request):
     """Get AI-powered borrow pattern analysis"""
-    if not _is_admin_user(request.user):
-        return Response({"detail": "Admin access required."}, status=status.HTTP_403_FORBIDDEN)
+    if not _is_handler_or_admin(request.user):
+        return Response({"detail": "Admin or Handler access required."}, status=status.HTTP_403_FORBIDDEN)
 
     if not ai_service.is_ai_available():
         return Response({
@@ -584,8 +595,8 @@ def admin_ai_borrow_analysis(request):
 @permission_classes([IsAuthenticated])
 def admin_ai_custom_analysis(request):
     """Get custom AI analysis for any data"""
-    if not _is_admin_user(request.user):
-        return Response({"detail": "Admin access required."}, status=status.HTTP_403_FORBIDDEN)
+    if not _is_handler_or_admin(request.user):
+        return Response({"detail": "Admin or Handler access required."}, status=status.HTTP_403_FORBIDDEN)
 
     if not ai_service.is_ai_available():
         return Response({
@@ -618,8 +629,8 @@ def admin_ai_custom_analysis(request):
 @permission_classes([IsAuthenticated])
 def admin_categories(request):
     """Get all categories with item counts"""
-    if not _is_admin_user(request.user):
-        return Response({"detail": "Admin access required."}, status=status.HTTP_403_FORBIDDEN)
+    if not _is_handler_or_admin(request.user):
+        return Response({"detail": "Admin or Handler access required."}, status=status.HTTP_403_FORBIDDEN)
 
     from .models import Category
     
@@ -651,8 +662,8 @@ def admin_categories(request):
 @permission_classes([IsAuthenticated])
 def admin_category_items(request, category_id):
     """Get all items in a category with their instances"""
-    if not _is_admin_user(request.user):
-        return Response({"detail": "Admin access required."}, status=status.HTTP_403_FORBIDDEN)
+    if not _is_handler_or_admin(request.user):
+        return Response({"detail": "Admin or Handler access required."}, status=status.HTTP_403_FORBIDDEN)
 
     from .models import Category, ItemInstance
     
@@ -854,3 +865,644 @@ def admin_create_item(request, category_id):
         "category": category.name,
         "message": "Item created successfully"
     }, status=status.HTTP_201_CREATED)
+
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def pending_borrow_requests(request):
+    """Get all pending borrow requests for admin/handler approval"""
+    if not _is_handler_or_admin(request.user):
+        return Response({"detail": "Admin or Handler access required."}, status=status.HTTP_403_FORBIDDEN)
+
+    pending_borrows = Borrow.objects.filter(status=Borrow.Status.PENDING).select_related(
+        "item", "borrower", "item_instance"
+    ).order_by("-created_at")
+    
+    serializer = BorrowSerializer(pending_borrows, many=True)
+    return Response({"requests": serializer.data})
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def approve_borrow_request(request, borrow_id):
+    """Approve a pending borrow request"""
+    if not _is_handler_or_admin(request.user):
+        return Response({"detail": "Admin or Handler access required."}, status=status.HTTP_403_FORBIDDEN)
+
+    try:
+        borrow = Borrow.objects.get(id=borrow_id, status=Borrow.Status.PENDING)
+    except Borrow.DoesNotExist:
+        return Response({"detail": "Borrow request not found or already processed."}, status=status.HTTP_404_NOT_FOUND)
+
+    # Update status to ACTIVE and assign handler
+    borrow.status = Borrow.Status.ACTIVE
+    borrow.handler = request.user
+    borrow.save()
+
+    # Create log entry
+    BorrowLog.objects.create(
+        borrow=borrow,
+        action=BorrowLog.ActionType.APPROVED,
+        performed_by=request.user,
+        description=f"Borrow request approved by {request.user.username}",
+        metadata={"approved_at": borrow.updated_at.isoformat()}
+    )
+
+    return Response({
+        "message": "Borrow request approved successfully",
+        "borrow": BorrowSerializer(borrow).data
+    })
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def reject_borrow_request(request, borrow_id):
+    """Reject a pending borrow request"""
+    if not _is_handler_or_admin(request.user):
+        return Response({"detail": "Admin or Handler access required."}, status=status.HTTP_403_FORBIDDEN)
+
+    try:
+        borrow = Borrow.objects.get(id=borrow_id, status=Borrow.Status.PENDING)
+    except Borrow.DoesNotExist:
+        return Response({"detail": "Borrow request not found or already processed."}, status=status.HTTP_404_NOT_FOUND)
+
+    reason = request.data.get("reason", "No reason provided")
+
+    # Update status to REJECTED
+    borrow.status = Borrow.Status.REJECTED
+    borrow.handler = request.user
+    borrow.notes = f"Rejected: {reason}"
+    borrow.save()
+
+    # Create log entry
+    BorrowLog.objects.create(
+        borrow=borrow,
+        action=BorrowLog.ActionType.REJECTED,
+        performed_by=request.user,
+        description=f"Borrow request rejected by {request.user.username}",
+        metadata={"reason": reason, "rejected_at": borrow.updated_at.isoformat()}
+    )
+
+    return Response({
+        "message": "Borrow request rejected successfully",
+        "borrow": BorrowSerializer(borrow).data
+    })
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def create_borrow_request(request):
+    """Create a new borrow request (for borrowers)"""
+    user = request.user
+    
+    # Check if user is approved
+    if not hasattr(user, "profile") or not user.profile.is_approved:
+        return Response({"detail": "Your account is not approved yet."}, status=status.HTTP_403_FORBIDDEN)
+
+    item_id = request.data.get("item_id")
+    due_date = request.data.get("due_date")
+    notes = request.data.get("notes", "")
+
+    if not item_id or not due_date:
+        return Response({"detail": "item_id and due_date are required."}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        item = Item.objects.get(id=item_id)
+    except Item.DoesNotExist:
+        return Response({"detail": "Item not found."}, status=status.HTTP_404_NOT_FOUND)
+
+    # Check if item has available instances
+    available_instance = ItemInstance.objects.filter(
+        item=item,
+        status=ItemInstance.ItemStatus.AVAILABLE
+    ).first()
+
+    if not available_instance:
+        return Response({"detail": "No available instances for this item."}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Create borrow request with PENDING status
+    borrow = Borrow.objects.create(
+        item=item,
+        item_instance=available_instance,
+        borrower=user,
+        due_date=due_date,
+        status=Borrow.Status.PENDING,
+        notes=notes
+    )
+
+    # Update instance status to IN_USE (reserved)
+    available_instance.status = ItemInstance.ItemStatus.IN_USE
+    available_instance.save()
+
+    # Create log entry
+    BorrowLog.objects.create(
+        borrow=borrow,
+        action=BorrowLog.ActionType.CREATED,
+        performed_by=user,
+        description=f"Borrow request created by {user.username}",
+        metadata={"requested_at": borrow.created_at.isoformat()}
+    )
+
+    return Response({
+        "message": "Borrow request created successfully. Waiting for approval.",
+        "borrow": BorrowSerializer(borrow).data
+    }, status=status.HTTP_201_CREATED)
+
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def scan_item_barcode(request, barcode):
+    """Scan item by barcode/reference_id and return details"""
+    if not _is_handler_or_admin(request.user):
+        return Response({"detail": "Admin or Handler access required."}, status=status.HTTP_403_FORBIDDEN)
+
+    try:
+        from .models import ItemInstance
+        instance = ItemInstance.objects.select_related('item', 'item__category').get(reference_id=barcode)
+        
+        return Response({
+            "id": instance.id,
+            "reference_id": instance.reference_id,
+            "item_name": instance.item.name,
+            "item_id": instance.item.id,
+            "category": instance.item.category.get_name_display() if instance.item.category else "N/A",
+            "status": instance.status,
+            "notes": instance.notes,
+        })
+    except ItemInstance.DoesNotExist:
+        return Response({"detail": "Item not found with this barcode."}, status=status.HTTP_404_NOT_FOUND)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def scan_user_rfid(request, rfid):
+    """Scan user by RFID and return details"""
+    if not _is_handler_or_admin(request.user):
+        return Response({"detail": "Admin or Handler access required."}, status=status.HTTP_403_FORBIDDEN)
+
+    try:
+        # For now, we'll use username as RFID. In production, add an rfid field to UserProfile
+        user = User.objects.get(username=rfid)
+        
+        if not hasattr(user, 'profile') or not user.profile.is_approved:
+            return Response({"detail": "User not approved."}, status=status.HTTP_403_FORBIDDEN)
+        
+        return Response({
+            "id": user.id,
+            "username": user.username,
+            "email": user.email,
+            "role": user.profile.role,
+            "is_approved": user.profile.is_approved,
+        })
+    except User.DoesNotExist:
+        return Response({"detail": "User not found with this RFID."}, status=status.HTTP_404_NOT_FOUND)
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def process_walkin_borrow(request):
+    """Process walk-in borrow (on-site) with scanned barcode and RFID"""
+    if not _is_handler_or_admin(request.user):
+        return Response({"detail": "Admin or Handler access required."}, status=status.HTTP_403_FORBIDDEN)
+
+    item_instance_id = request.data.get("item_instance_id")
+    borrower_id = request.data.get("borrower_id")
+    due_date = request.data.get("due_date")
+    notes = request.data.get("notes", "Walk-in borrow")
+
+    if not item_instance_id or not borrower_id or not due_date:
+        return Response(
+            {"detail": "item_instance_id, borrower_id, and due_date are required."},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    try:
+        from .models import ItemInstance
+        instance = ItemInstance.objects.select_related('item').get(id=item_instance_id)
+        borrower = User.objects.get(id=borrower_id)
+
+        # Check if instance is available
+        if instance.status != ItemInstance.ItemStatus.AVAILABLE:
+            return Response(
+                {"detail": f"Item instance is not available. Current status: {instance.status}"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Create borrow with ACTIVE status (walk-in is immediate)
+        borrow = Borrow.objects.create(
+            item=instance.item,
+            item_instance=instance,
+            borrower=borrower,
+            handler=request.user,
+            due_date=due_date,
+            status=Borrow.Status.ACTIVE,  # Walk-in is immediately active
+            notes=notes
+        )
+
+        # Update instance status
+        instance.status = ItemInstance.ItemStatus.IN_USE
+        instance.save()
+
+        # Create log entry
+        BorrowLog.objects.create(
+            borrow=borrow,
+            action=BorrowLog.ActionType.CREATED,
+            performed_by=request.user,
+            description=f"Walk-in borrow processed by {request.user.username}",
+            metadata={
+                "borrow_type": "walk-in",
+                "processed_at": borrow.created_at.isoformat()
+            }
+        )
+
+        return Response({
+            "message": "Walk-in borrow processed successfully",
+            "borrow": BorrowSerializer(borrow).data
+        }, status=status.HTTP_201_CREATED)
+
+    except ItemInstance.DoesNotExist:
+        return Response({"detail": "Item instance not found."}, status=status.HTTP_404_NOT_FOUND)
+    except User.DoesNotExist:
+        return Response({"detail": "Borrower not found."}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        return Response({"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# ============================================================================
+# BORROWER ENDPOINTS (Students & Personnel)
+# ============================================================================
+
+def _is_borrower(user):
+    """Check if user is a borrower (STUDENT, PERSONNEL, or legacy USER)"""
+    try:
+        return user.profile.role in ['STUDENT', 'PERSONNEL', 'USER']
+    except (AttributeError, UserProfile.DoesNotExist):
+        return False
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def borrower_stats(request):
+    """Get borrower dashboard statistics"""
+    if not _is_borrower(request.user):
+        return Response({"detail": "Borrower access required."}, status=status.HTTP_403_FORBIDDEN)
+
+    user = request.user
+    
+    # Get active borrows
+    active_borrows = Borrow.objects.filter(
+        borrower=user,
+        status=Borrow.Status.ACTIVE
+    ).count()
+    
+    # Get pending requests
+    pending_requests = Borrow.objects.filter(
+        borrower=user,
+        status=Borrow.Status.PENDING
+    ).count()
+    
+    # Get overdue items
+    from django.utils import timezone
+    overdue_items = Borrow.objects.filter(
+        borrower=user,
+        status=Borrow.Status.ACTIVE,
+        due_date__lt=timezone.now()
+    ).count()
+    
+    # Get total borrowed (all time)
+    total_borrowed = Borrow.objects.filter(borrower=user).count()
+    
+    return Response({
+        "active_borrows": active_borrows,
+        "pending_requests": pending_requests,
+        "overdue_items": overdue_items,
+        "total_borrowed": total_borrowed
+    })
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def borrower_my_borrows(request):
+    """Get borrower's borrows with filtering"""
+    if not _is_borrower(request.user):
+        return Response({"detail": "Borrower access required."}, status=status.HTTP_403_FORBIDDEN)
+
+    user = request.user
+    status_filter = request.GET.get('status', 'active')
+    limit = request.GET.get('limit', None)
+    
+    # Base query
+    borrows_query = Borrow.objects.filter(borrower=user).select_related(
+        'item_instance', 'item_instance__item'
+    ).order_by('-borrow_date')
+    
+    # Apply status filter
+    if status_filter == 'active':
+        borrows_query = borrows_query.filter(status=Borrow.Status.ACTIVE)
+    elif status_filter == 'pending':
+        borrows_query = borrows_query.filter(status=Borrow.Status.PENDING)
+    elif status_filter == 'history':
+        borrows_query = borrows_query.filter(status__in=[Borrow.Status.RETURNED, Borrow.Status.REJECTED])
+    
+    # Apply limit if specified
+    if limit:
+        try:
+            borrows_query = borrows_query[:int(limit)]
+        except ValueError:
+            pass
+    
+    # Serialize borrows
+    borrows_data = []
+    for borrow in borrows_query:
+        borrows_data.append({
+            "id": borrow.id,
+            "item_name": borrow.item_instance.item.name if borrow.item_instance else "Unknown",
+            "reference_id": borrow.item_instance.reference_id if borrow.item_instance else "N/A",
+            "status": borrow.status,
+            "borrow_date": borrow.borrow_date,
+            "due_date": borrow.due_date,
+            "return_date": borrow.return_date,
+            "notes": borrow.notes or ""
+        })
+    
+    return Response({"borrows": borrows_data})
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def borrower_categories(request):
+    """Get all categories with available item counts for borrowers"""
+    if not _is_borrower(request.user):
+        return Response({"detail": "Borrower access required."}, status=status.HTTP_403_FORBIDDEN)
+
+    categories = Category.objects.all()
+    
+    categories_data = []
+    for category in categories:
+        # Count available instances in this category
+        available_count = ItemInstance.objects.filter(
+            item__category=category,
+            status=ItemInstance.ItemStatus.AVAILABLE
+        ).count()
+        
+        # Count total instances
+        total_instances = ItemInstance.objects.filter(
+            item__category=category
+        ).count()
+        
+        categories_data.append({
+            "id": category.id,
+            "name": category.name,
+            "display_name": category.get_name_display(),
+            "available_count": available_count,
+            "total_instances": total_instances
+        })
+    
+    return Response({"categories": categories_data})
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def borrower_category_items(request, category_id):
+    """Get all items in a category with availability info for borrowers"""
+    if not _is_borrower(request.user):
+        return Response({"detail": "Borrower access required."}, status=status.HTTP_403_FORBIDDEN)
+
+    try:
+        category = Category.objects.get(id=category_id)
+    except Category.DoesNotExist:
+        return Response({"detail": "Category not found."}, status=status.HTTP_404_NOT_FOUND)
+    
+    items = Item.objects.filter(category=category)
+    
+    items_data = []
+    for item in items:
+        # Count instances by status
+        available_count = item.instances.filter(status=ItemInstance.ItemStatus.AVAILABLE).count()
+        in_use_count = item.instances.filter(status=ItemInstance.ItemStatus.IN_USE).count()
+        faulty_count = item.instances.filter(status=ItemInstance.ItemStatus.FAULTY).count()
+        
+        items_data.append({
+            "id": item.id,
+            "name": item.name,
+            "description": item.description or "",
+            "available_count": available_count,
+            "in_use_count": in_use_count,
+            "faulty_count": faulty_count,
+            "total_quantity": item.quantity
+        })
+    
+    return Response({"items": items_data})
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def borrower_request_borrow(request):
+    """Submit a borrow request for an item"""
+    if not _is_borrower(request.user):
+        return Response({"detail": "Borrower access required."}, status=status.HTTP_403_FORBIDDEN)
+
+    user = request.user
+    
+    # Check if user is approved
+    if not hasattr(user, "profile") or not user.profile.is_approved:
+        return Response({"detail": "Your account is not approved yet."}, status=status.HTTP_403_FORBIDDEN)
+    
+    item_id = request.data.get("item_id")
+    notes = request.data.get("notes", "")
+    
+    if not item_id:
+        return Response({"detail": "Item ID is required."}, status=status.HTTP_400_BAD_REQUEST)
+    
+    try:
+        item = Item.objects.get(id=item_id)
+    except Item.DoesNotExist:
+        return Response({"detail": "Item not found."}, status=status.HTTP_404_NOT_FOUND)
+    
+    # Check if there are available instances
+    available_instance = item.instances.filter(status=ItemInstance.ItemStatus.AVAILABLE).first()
+    
+    if not available_instance:
+        return Response({"detail": "No available instances of this item."}, status=status.HTTP_400_BAD_REQUEST)
+    
+    # Check if user already has a pending request for this item
+    existing_request = Borrow.objects.filter(
+        borrower=user,
+        item_instance__item=item,
+        status=Borrow.Status.PENDING
+    ).exists()
+    
+    if existing_request:
+        return Response({"detail": "You already have a pending request for this item."}, status=status.HTTP_400_BAD_REQUEST)
+    
+    # Create borrow request with PENDING status
+    from django.utils import timezone
+    from datetime import timedelta
+    
+    borrow = Borrow.objects.create(
+        borrower=user,
+        item_instance=available_instance,
+        status=Borrow.Status.PENDING,
+        borrow_date=timezone.now(),
+        due_date=timezone.now() + timedelta(days=3),  # Default 3 days
+        notes=notes
+    )
+    
+    # Create log entry
+    BorrowLog.objects.create(
+        borrow=borrow,
+        action=BorrowLog.ActionType.REQUESTED,
+        performed_by=user,
+        description=f"Borrow request submitted by {user.username}",
+        metadata={"item": item.name, "requested_at": borrow.borrow_date.isoformat()}
+    )
+    
+    return Response({
+        "message": "Borrow request submitted successfully",
+        "borrow_id": borrow.id,
+        "item_name": item.name,
+        "status": "PENDING"
+    }, status=status.HTTP_201_CREATED)
+
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def borrower_notifications(request):
+    """Get borrower's notifications"""
+    if not _is_borrower(request.user):
+        return Response({"detail": "Borrower access required."}, status=status.HTTP_403_FORBIDDEN)
+
+    user = request.user
+    
+    # Get recent borrow status changes (approved/rejected in last 30 days)
+    from django.utils import timezone
+    from datetime import timedelta
+    
+    thirty_days_ago = timezone.now() - timedelta(days=30)
+    
+    # Get recently approved borrows (exclude those without item_instance)
+    approved_borrows = Borrow.objects.filter(
+        borrower=user,
+        status=Borrow.Status.ACTIVE,
+        updated_at__gte=thirty_days_ago,
+        item_instance__isnull=False
+    ).select_related('item_instance', 'item_instance__item').order_by('-updated_at')[:10]
+    
+    # Get recently rejected borrows (exclude those without item_instance)
+    rejected_borrows = Borrow.objects.filter(
+        borrower=user,
+        status=Borrow.Status.REJECTED,
+        updated_at__gte=thirty_days_ago,
+        item_instance__isnull=False
+    ).select_related('item_instance', 'item_instance__item').order_by('-updated_at')[:10]
+    
+    # Get overdue items (exclude those without item_instance)
+    overdue_borrows = Borrow.objects.filter(
+        borrower=user,
+        status=Borrow.Status.ACTIVE,
+        due_date__lt=timezone.now(),
+        item_instance__isnull=False
+    ).select_related('item_instance', 'item_instance__item').order_by('due_date')
+    
+    notifications = []
+    
+    # Add approved notifications
+    for borrow in approved_borrows:
+        notifications.append({
+            "id": f"approved_{borrow.id}",
+            "type": "APPROVED",
+            "title": "Request Approved",
+            "message": f"Your request for {borrow.item_instance.item.name} has been approved. Pick it up at the lab.",
+            "item_name": borrow.item_instance.item.name,
+            "reference_id": borrow.item_instance.reference_id,
+            "timestamp": borrow.updated_at,
+            "read": False,
+            "borrow_id": borrow.id
+        })
+    
+    # Add rejected notifications
+    for borrow in rejected_borrows:
+        notifications.append({
+            "id": f"rejected_{borrow.id}",
+            "type": "REJECTED",
+            "title": "Request Rejected",
+            "message": f"Your request for {borrow.item_instance.item.name} was rejected. {borrow.notes}",
+            "item_name": borrow.item_instance.item.name,
+            "timestamp": borrow.updated_at,
+            "read": False,
+            "borrow_id": borrow.id
+        })
+    
+    # Add overdue notifications
+    for borrow in overdue_borrows:
+        days_overdue = (timezone.now() - borrow.due_date).days
+        notifications.append({
+            "id": f"overdue_{borrow.id}",
+            "type": "OVERDUE",
+            "title": "Item Overdue",
+            "message": f"{borrow.item_instance.item.name} ({borrow.item_instance.reference_id}) is {days_overdue} day(s) overdue. Please return it ASAP.",
+            "item_name": borrow.item_instance.item.name,
+            "reference_id": borrow.item_instance.reference_id,
+            "timestamp": borrow.due_date,
+            "read": False,
+            "borrow_id": borrow.id,
+            "days_overdue": days_overdue
+        })
+    
+    # Sort by timestamp (newest first)
+    notifications.sort(key=lambda x: x['timestamp'], reverse=True)
+    
+    return Response({
+        "notifications": notifications,
+        "unread_count": len(notifications)
+    })
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def borrower_notification_count(request):
+    """Get count of unread notifications"""
+    if not _is_borrower(request.user):
+        return Response({"detail": "Borrower access required."}, status=status.HTTP_403_FORBIDDEN)
+
+    user = request.user
+    
+    from django.utils import timezone
+    from datetime import timedelta
+    
+    thirty_days_ago = timezone.now() - timedelta(days=30)
+    
+    # Count recent status changes (exclude those without item_instance)
+    approved_count = Borrow.objects.filter(
+        borrower=user,
+        status=Borrow.Status.ACTIVE,
+        updated_at__gte=thirty_days_ago,
+        item_instance__isnull=False
+    ).count()
+    
+    rejected_count = Borrow.objects.filter(
+        borrower=user,
+        status=Borrow.Status.REJECTED,
+        updated_at__gte=thirty_days_ago,
+        item_instance__isnull=False
+    ).count()
+    
+    # Count overdue items (exclude those without item_instance)
+    overdue_count = Borrow.objects.filter(
+        borrower=user,
+        status=Borrow.Status.ACTIVE,
+        due_date__lt=timezone.now(),
+        item_instance__isnull=False
+    ).count()
+    
+    total_count = approved_count + rejected_count + overdue_count
+    
+    return Response({
+        "unread_count": total_count,
+        "approved": approved_count,
+        "rejected": rejected_count,
+        "overdue": overdue_count
+    })

@@ -1,10 +1,10 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { MultiSelect } from "primereact/multiselect";
 import { InputNumber } from "primereact/inputnumber";
 import { Button } from "primereact/button";
 import items from "../../JSON/Items.json";
-import { clearSession } from "../../lib/auth";
+import { clearSession, getStoredUser, getToken } from "../../lib/auth";
 
 interface InputValue {
   name: string;
@@ -14,10 +14,10 @@ interface InputValue {
 }
 
 const navItems = [
-  { label: "Dashboard", icon: "pi pi-home", path: "/dashboard" },
-  { label: "Borrow", icon: "pi pi-book", path: "/Borrow" },
-  { label: "Return", icon: "pi pi-replay", path: "/Return" },
-  { label: "Account", icon: "pi pi-user", path: "/Account" },
+  { label: "Dashboard", icon: "pi pi-home", path: "/borrower/dashboard" },
+  { label: "Browse Items", icon: "pi pi-search", path: "/borrower/browse" },
+  { label: "My Borrows", icon: "pi pi-list", path: "/borrower/my-borrows" },
+  { label: "Account", icon: "pi pi-user", path: "/borrower/account" },
 ];
 
 function Borrow() {
@@ -26,6 +26,22 @@ function Borrow() {
   const [quantity, setQuantity] = useState<number>(1);
   const [selectedItems, setSelectedItems] = useState<InputValue[]>([]);
   const availableItems: InputValue[] = items as InputValue[];
+
+  useEffect(() => {
+    const user = getStoredUser();
+    const token = getToken();
+    
+    if (!token) {
+      navigate('/login', { replace: true });
+      return;
+    }
+    
+    if (user?.role === 'STUDENT' || user?.role === 'PERSONNEL') {
+      navigate('/borrower/browse', { replace: true });
+      return;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const selectedCount = useMemo(() => selectedItems.length, [selectedItems]);
 
